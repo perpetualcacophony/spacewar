@@ -33,7 +33,16 @@ fn main() {
         .add_plugins(missile::Plugin)
         .init_resource::<GravityField>()
         .insert_resource(KeyBinds::default())
-        .add_systems(Startup, (startup, respawn_ship, debug_info::spawn))
+        .add_systems(
+            Startup,
+            (
+                startup,
+                respawn_ship,
+                debug_info::spawn,
+                debug_info::post_spawn,
+            )
+                .chain(),
+        )
         .add_systems(
             Update,
             (
@@ -41,7 +50,7 @@ fn main() {
                     keys.any_just_pressed(keybinds.reset())
                 }),
                 zoom,
-                debug_info::update,
+                debug_info::update2,
             ),
         )
         .run();
