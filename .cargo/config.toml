@@ -1,0 +1,11 @@
+[target.x86_64-pc-windows-msvc]
+linker = "lld"
+rustflags = [
+    "-Lnative=/home/kate/.xwin/crt/lib/x86_64",
+    "-Lnative=/home/kate/.xwin/sdk/lib/um/x86_64",
+    "-Lnative=/home/kate/.xwin/sdk/lib/ucrt/x86_64",
+]
+
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/mold"]
