@@ -34,7 +34,7 @@ fn main() {
         .add_plugins(debug_info::Plugin)
         .init_resource::<GravityField>()
         .insert_resource(KeyBinds::default())
-        .add_systems(Startup, (startup, respawn_ship).chain())
+        .add_systems(Startup, (startup, respawn_ship))
         .add_systems(
             Update,
             (

@@ -2,12 +2,12 @@ use bevy::prelude::*;
 
 #[derive(Clone, Debug, Resource)]
 pub struct KeyBinds {
-    pub zoom: Vec<KeyPair>,
-    pub rotation_speed: Vec<KeyPair>,
-    pub accelerate: Vec<KeyCode>,
-    pub trajectory_length: Vec<KeyPair>,
-    pub reset: Vec<KeyCode>,
-    pub toggle_debug_menu: Vec<KeyCode>,
+    zoom: Vec<KeyPair>,
+    rotation_speed: Vec<KeyPair>,
+    accelerate: Vec<KeyCode>,
+    trajectory_length: Vec<KeyPair>,
+    reset: Vec<KeyCode>,
+    toggle_debug_menu: Vec<KeyCode>,
 }
 
 impl Default for KeyBinds {
