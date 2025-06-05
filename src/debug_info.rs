@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::KeyBinds;
+
 /*
 macro_rules! line_enum {
     ($($variant:ident $title:literal)*) => {
@@ -32,8 +34,48 @@ line_enum! {
     Fps "Frames per second"
 } */
 
+#[derive(Debug, Clone, Default)]
+pub struct Plugin;
+
+impl bevy::prelude::Plugin for Plugin {
+    fn build(&self, app: &mut App) {
+        app.init_state::<State>()
+            .add_systems(Startup, (spawn, post_spawn).chain())
+            .add_systems(
+                Update,
+                (
+                    update2.run_if(in_state(State::Shown)),
+                    |keys: Res<ButtonInput<KeyCode>>,
+                     keybinds: Res<KeyBinds>,
+                     state: Res<bevy::prelude::State<State>>,
+                     mut next_state: ResMut<NextState<State>>| {
+                        if keys.any_just_pressed(keybinds.toggle_debug_menu()) {
+                            if *state == State::Shown {
+                                next_state.set(State::Hidden);
+                            } else {
+                                next_state.set(State::Shown)
+                            }
+                        }
+                    },
+                ),
+            )
+            .add_systems(
+                OnEnter(State::Shown),
+                |mut vis: Single<&mut Visibility, With<DebugInfo>>| {
+                    **vis = Visibility::Visible;
+                },
+            )
+            .add_systems(
+                OnEnter(State::Hidden),
+                |mut vis: Single<&mut Visibility, With<DebugInfo>>| {
+                    **vis = Visibility::Hidden;
+                },
+            );
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, States, Hash, PartialEq, Eq, Reflect)]
-pub enum DebugInfoState {
+pub enum State {
     #[default]
     Shown,
     Hidden,
@@ -70,7 +112,7 @@ impl Line2 {
             Self::Heading(v) => format!("{v:.2}°"),
             Self::AngVel(v) => format!("{v:.0}°/sec"),
             Self::Speed(v) => format!("{v:.2}"),
-            Self::Zoom(v) => format!("{v:.2}"),
+            Self::Zoom(v) => format!("{v:.2}x"),
             Self::Fps(v) => format!("{v:.2}"),
         }
     }
@@ -98,7 +140,7 @@ impl From<&Line> for String {
 #[require(Node)]
 pub struct DebugInfo;
 
-pub fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/FiraMono-Regular.ttf");
     let lines = [
         Line2::HEADING,
@@ -143,7 +185,7 @@ pub fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
     } */
 }
 
-pub fn post_spawn(
+fn post_spawn(
     mut commands: Commands,
     lines: Query<(Entity, &Line2), With<Line2>>,
     asset_server: Res<AssetServer>,
@@ -206,7 +248,7 @@ pub fn post_spawn(
     }
 } */
 
-pub fn update2(
+fn update2(
     lines: Query<(&mut Line2, &Children)>,
     mut spans: Query<&mut TextSpan>,
     ship: Single<(&crate::Ship, &crate::Transform)>,

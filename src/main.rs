@@ -31,19 +31,10 @@ fn main() {
         .add_plugins(star::Plugin)
         .add_plugins(ship::Plugin)
         .add_plugins(missile::Plugin)
-        .init_state::<debug_info::DebugInfoState>()
+        .add_plugins(debug_info::Plugin)
         .init_resource::<GravityField>()
         .insert_resource(KeyBinds::default())
-        .add_systems(
-            Startup,
-            (
-                startup,
-                respawn_ship,
-                debug_info::spawn,
-                debug_info::post_spawn,
-            )
-                .chain(),
-        )
+        .add_systems(Startup, (startup, respawn_ship).chain())
         .add_systems(
             Update,
             (
@@ -51,32 +42,7 @@ fn main() {
                     keys.any_just_pressed(keybinds.reset())
                 }),
                 zoom,
-                debug_info::update2.run_if(in_state(debug_info::DebugInfoState::Shown)),
-                |keys: Res<ButtonInput<KeyCode>>,
-                 keybinds: Res<KeyBinds>,
-                 state: Res<State<debug_info::DebugInfoState>>,
-                 mut next_state: ResMut<NextState<debug_info::DebugInfoState>>| {
-                    if keys.any_just_pressed(keybinds.toggle_debug_menu()) {
-                        if *state == debug_info::DebugInfoState::Shown {
-                            next_state.set(debug_info::DebugInfoState::Hidden);
-                        } else {
-                            next_state.set(debug_info::DebugInfoState::Shown)
-                        }
-                    }
-                },
             ),
-        )
-        .add_systems(
-            OnEnter(debug_info::DebugInfoState::Shown),
-            |mut vis: Single<&mut Visibility, With<debug_info::DebugInfo>>| {
-                **vis = Visibility::Visible;
-            },
-        )
-        .add_systems(
-            OnEnter(debug_info::DebugInfoState::Hidden),
-            |mut vis: Single<&mut Visibility, With<debug_info::DebugInfo>>| {
-                **vis = Visibility::Hidden;
-            },
         )
         .run();
 }
