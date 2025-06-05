@@ -1,47 +1,42 @@
 use bevy::prelude::*;
 
-#[derive(Clone, Debug, Resource)]
-pub struct KeyBinds {
-    zoom: Vec<KeyPair>,
-    rotation_speed: Vec<KeyPair>,
-    accelerate: Vec<KeyCode>,
-    trajectory_length: Vec<KeyPair>,
-    reset: Vec<KeyCode>,
-    toggle_debug_menu: Vec<KeyCode>,
-}
-
-impl Default for KeyBinds {
-    fn default() -> Self {
-        Self {
-            zoom: vec![KeyPair::COMMA_PERIOD],
-            rotation_speed: vec![KeyPair::ARROWS_LR, KeyPair::KEY_AD],
-            accelerate: vec![KeyCode::ArrowUp, KeyCode::KeyW],
-            trajectory_length: vec![KeyPair::BRACKETS],
-            reset: vec![KeyCode::KeyR],
-            toggle_debug_menu: vec![KeyCode::F3],
+macro_rules! keybinds_struct {
+    ($($field:ident: $type:ty [$($default:path),+])*) => {
+        #[derive(Clone, Debug, Resource)]
+        pub struct KeyBinds {
+            $(
+                $field: Box<[$type]>
+            ),*
         }
-    }
-}
 
-macro_rules! keybinds_iter_getters {
-    ($($field:ident $type:ty)*) => {
-        $(
-            pub fn $field(&self) -> impl Iterator<Item = $type> {
-                self.$field.iter().copied()
+        // make getters
+        impl KeyBinds {
+            $(
+                pub fn $field(&self) -> impl Iterator<Item = $type> {
+                    self.$field.iter().copied()
+                }
+            )*
+        }
+
+        impl Default for KeyBinds {
+            fn default() -> Self {
+                Self {
+                    $(
+                        $field: vec![$( $default ),+].into_boxed_slice()
+                    ),*
+                }
             }
-        )*
+        }
     };
 }
 
-impl KeyBinds {
-    keybinds_iter_getters! {
-        zoom KeyPair
-        rotation_speed KeyPair
-        accelerate KeyCode
-        trajectory_length KeyPair
-        reset KeyCode
-        toggle_debug_menu KeyCode
-    }
+keybinds_struct! {
+    zoom: KeyPair [KeyPair::COMMA_PERIOD]
+    rotation_speed: KeyPair [KeyPair::ARROWS_LR, KeyPair::KEY_AD]
+    accelerate: KeyCode [KeyCode::ArrowUp, KeyCode::KeyW]
+    trajectory_length: KeyPair [KeyPair::BRACKETS]
+    reset: KeyCode [KeyCode::KeyR]
+    toggle_debug_menu: KeyCode [KeyCode::F3]
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
