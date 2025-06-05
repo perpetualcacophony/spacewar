@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+
 /*
 macro_rules! line_enum {
     ($($variant:ident $title:literal)*) => {
@@ -30,6 +31,13 @@ line_enum! {
     Zoom "Zoom"
     Fps "Frames per second"
 } */
+
+#[derive(Clone, Copy, Debug, Default, States, Hash, PartialEq, Eq, Reflect)]
+pub enum DebugInfoState {
+    #[default]
+    Shown,
+    Hidden,
+}
 
 #[derive(Debug, Clone, Component)]
 pub enum Line2 {
@@ -92,6 +100,13 @@ pub struct DebugInfo;
 
 pub fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/FiraMono-Regular.ttf");
+    let lines = [
+        Line2::HEADING,
+        Line2::ANG_VEL,
+        Line2::SPEED,
+        Line2::ZOOM,
+        Line2::FPS,
+    ];
 
     commands
         .spawn((
@@ -108,11 +123,11 @@ pub fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..Default::default()
             },
         ))
-        .with_child(Line2::HEADING)
-        .with_child(Line2::ANG_VEL)
-        .with_child(Line2::SPEED)
-        .with_child(Line2::ZOOM)
-        .with_child(Line2::FPS);
+        .with_children(|p| {
+            for line in lines {
+                p.spawn(line);
+            }
+        });
     /*
     for line in Line::VARIANTS {
         commands

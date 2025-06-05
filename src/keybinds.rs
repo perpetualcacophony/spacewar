@@ -7,6 +7,7 @@ pub struct KeyBinds {
     pub accelerate: Vec<KeyCode>,
     pub trajectory_length: Vec<KeyPair>,
     pub reset: Vec<KeyCode>,
+    pub toggle_debug_menu: Vec<KeyCode>,
 }
 
 impl Default for KeyBinds {
@@ -17,6 +18,7 @@ impl Default for KeyBinds {
             accelerate: vec![KeyCode::ArrowUp, KeyCode::KeyW],
             trajectory_length: vec![KeyPair::BRACKETS],
             reset: vec![KeyCode::KeyR],
+            toggle_debug_menu: vec![KeyCode::F3],
         }
     }
 }
@@ -38,6 +40,7 @@ impl KeyBinds {
         accelerate KeyCode
         trajectory_length KeyPair
         reset KeyCode
+        toggle_debug_menu KeyCode
     }
 }
 
