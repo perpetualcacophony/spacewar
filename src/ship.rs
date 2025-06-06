@@ -14,7 +14,7 @@ pub struct Ship {
 impl Default for Ship {
     fn default() -> Self {
         Self {
-            velocity: Vec2::X * 3.0,
+            velocity: Vec2::X * 300.0,
             rotational_velocity: 0.0,
             sas: Some(SASMode::default()),
             draw_trajectory: 500,
@@ -148,21 +148,25 @@ fn update_ship(
         time.delta_secs(),
     );
 
-    ship.velocity = trajectory.next_guaranteed().velocity();
-    ship_transform.translation += ship.velocity;
+    let next_node = trajectory.next().unwrap();
+
+    ship.velocity = next_node.velocity();
+    ship_transform.translation = next_node.translation();
 }
 
 fn draw_trajectory(
     ships: Query<(&Ship, &Transform)>,
     gravity: Res<GravityField>,
     mut gizmos: Gizmos,
+    time: Res<Time<Fixed>>,
 ) {
     for (ship, transform) in ships.iter() {
-        for (i, node) in gravity
-            .trajectory_starting_at(
-                TrajectoryNode::from_translation_velocity(transform.translation, ship.velocity),
-                1.0,
-            )
+        let trajectory = gravity.trajectory_starting_at(
+            TrajectoryNode::from_translation_velocity(transform.translation, ship.velocity),
+            time.delta_secs(),
+        );
+
+        for (i, node) in trajectory
             .step_by(ship.trajectory_gap)
             .take(ship.draw_trajectory)
             .enumerate()

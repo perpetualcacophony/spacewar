@@ -1,16 +1,17 @@
 use bevy::math::Vec2;
-const GRAVITY: f32 = 1.0 / 50.0;
+pub const GRAVITATIONAL_CONSTANT: f32 = 6.6743e-11;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Mass {
     pub translation: Vec2,
-    pub mass: f32,
+    pub mass: f32, // in kg
 }
 
 impl Mass {
     fn acceleration_to(&self, from_point: Vec2) -> Vec2 {
         let displacement = from_point - self.translation;
-        -GRAVITY * self.mass / displacement.length_squared() * displacement.normalize_or_zero()
+        -GRAVITATIONAL_CONSTANT * self.mass / displacement.length_squared()
+            * displacement.normalize_or_zero()
     }
 }
 
@@ -36,7 +37,7 @@ impl GravityField {
             state: start,
             gravity: self,
             mass: 1.0,
-            delta_secs,
+            timestep: delta_secs,
         }
     }
 }

@@ -5,15 +5,41 @@ pub struct Trajectory<'g> {
     pub gravity: &'g GravityField,
     pub state: TrajectoryNode,
     pub mass: f32,
-    pub delta_secs: f32,
+    pub timestep: f32,
 }
 
 impl Trajectory<'_> {
     pub fn next_guaranteed(&mut self) -> TrajectoryNode {
         self.state.velocity += self.mass * self.gravity.acceleration_at(self.state.translation());
 
-        self.state.translation += self.state.velocity() * self.delta_secs;
+        self.state.translation += self.state.velocity() * self.timestep;
         self.state
+    }
+
+    pub fn eccentricity(&self) -> f32 {
+        let standard_gravitational_parameter = crate::gravity::GRAVITATIONAL_CONSTANT * 1.6e16;
+
+        // vis-viva equation
+        let specific_orbital_energy = {
+            let v_squared = self.state.velocity().length_squared();
+            let r = self.state.translation().length();
+            let mu = standard_gravitational_parameter;
+
+            v_squared / 2.0 - mu / r
+        };
+
+        dbg!(specific_orbital_energy);
+
+        let specific_relative_angular_momentum = self
+            .state
+            .translation()
+            .extend(0.0)
+            .cross(self.state.velocity().extend(0.0))
+            .z;
+
+        (1.0 + (2.0 * specific_orbital_energy * specific_relative_angular_momentum.powi(2)
+            / standard_gravitational_parameter.powi(2)))
+        .sqrt()
     }
 }
 

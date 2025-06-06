@@ -51,7 +51,7 @@ fn startup(mut commands: Commands) {
     commands.spawn(Camera2d);
 
     commands.spawn(star::Bundle {
-        star: Star { mass: 400_000.0 },
+        star: Star { mass: 1.6e16 },
         transform: Transform::default(),
     });
 

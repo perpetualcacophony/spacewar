@@ -111,7 +111,7 @@ impl Line2 {
         match self {
             Self::Heading(v) => format!("{v:.2}°"),
             Self::AngVel(v) => format!("{v:.0}°/sec"),
-            Self::Speed(v) => format!("{v:.2}"),
+            Self::Speed(v) => format!("{v:.2}m/s"),
             Self::Zoom(v) => format!("{v:.2}x"),
             Self::Fps(v) => format!("{v:.2}"),
         }
