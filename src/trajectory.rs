@@ -19,7 +19,7 @@ impl Trajectory<'_> {
     pub fn eccentricity(&self) -> f32 {
         let standard_gravitational_parameter = crate::gravity::GRAVITATIONAL_CONSTANT * 1.6e16;
 
-        let angular_momentum = {
+        let _angular_momentum = {
             let r = self.state.translation();
             let v = self.state.velocity();
             let theta = (-v).angle_to(-self.state.translation);
