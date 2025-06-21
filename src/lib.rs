@@ -1,12 +1,23 @@
 pub mod transform2d {
     use bevy::prelude::*;
 
-    #[derive(Debug, Clone, Copy, PartialEq, Default, Component)]
+    #[derive(Debug, Clone, Copy, PartialEq, Component)]
     pub struct Transform2d {
         pub translation: Vec2,
         pub z_layer: f32,
         pub rotation: Rot2,
         pub scale: Vec2,
+    }
+
+    impl Default for Transform2d {
+        fn default() -> Self {
+            Self {
+                translation: Vec2::ZERO,
+                z_layer: 0.0,
+                rotation: Rot2::IDENTITY,
+                scale: Vec2::ONE,
+            }
+        }
     }
 
     impl Transform2d {

@@ -88,6 +88,7 @@ pub enum Line2 {
     Speed(f32),
     Zoom(f32),
     Fps(f32),
+    Distance(f32),
 }
 
 impl Line2 {
@@ -96,6 +97,7 @@ impl Line2 {
     const SPEED: Self = Self::Speed(0.0);
     const ZOOM: Self = Self::Zoom(1.0);
     const FPS: Self = Self::Fps(0.0);
+    const DISTANCE: Self = Self::Distance(0.0);
 
     pub const fn field(&self) -> &'static str {
         match self {
@@ -104,6 +106,7 @@ impl Line2 {
             Self::Speed(_) => "Speed",
             Self::Zoom(_) => "Zoom",
             Self::Fps(_) => "Frames per second",
+            Self::Distance(_) => "Distance from origin",
         }
     }
 
@@ -114,6 +117,7 @@ impl Line2 {
             Self::Speed(v) => format!("{v:.2}m/s"),
             Self::Zoom(v) => format!("{v:.2}x"),
             Self::Fps(v) => format!("{v:.2}"),
+            Self::Distance(v) => format!("{v:.2}m"),
         }
     }
 }
@@ -148,6 +152,7 @@ fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
         Line2::SPEED,
         Line2::ZOOM,
         Line2::FPS,
+        Line2::DISTANCE,
     ];
 
     commands
@@ -292,6 +297,7 @@ fn update2(
                     .and_then(|d| d.average())
                     .unwrap_or_default() as f32
             }
+            Line2::Distance(ref mut distance) => *distance = ship_transform.translation.length(),
         }
     }
 }

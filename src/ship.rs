@@ -82,7 +82,7 @@ fn change_speed(
     let (mut ship, transform) = ship.into_inner();
 
     if keys.any_pressed(keybinds.accelerate()) {
-        ship.velocity += 0.015 * transform.local_x();
+        ship.velocity += 0.5 * transform.local_x();
     }
 }
 
@@ -152,6 +152,15 @@ fn update_ship(
 
     ship.velocity = next_node.velocity();
     ship_transform.translation = next_node.translation();
+
+    //trajectory.eccentricity();
+
+    /*     dbg!(ship.velocity.length());
+    dbg!(ship_transform.translation.length());
+    println!(
+        "v2 / r = {}",
+        ship.velocity.length_squared() / ship_transform.translation.length()
+    ); */
 }
 
 fn draw_trajectory(
@@ -209,11 +218,8 @@ impl bevy::prelude::Plugin for Plugin {
                     )),
                 ),
             )
-            .add_systems(FixedUpdate, (update_ship, trail::define_trail))
-            .add_systems(
-                PostUpdate,
-                (trail::draw_trail, draw_trajectory, spawn_ships),
-            );
+            .add_systems(FixedUpdate, (update_ship, trail::update_trail))
+            .add_systems(PostUpdate, (draw_trajectory, spawn_ships));
     }
 }
 
@@ -244,14 +250,18 @@ pub fn trajectory_drawing_keybinds(
 }
 
 mod trail {
-    const TRAIL_LENGTH: usize = 10;
+    const TRAIL_LENGTH: usize = 20;
 
     use super::Transform;
     use bevy::prelude::*;
     use std::collections::VecDeque;
 
     #[derive(Component, Clone, Debug)]
-    pub struct Trail(VecDeque<Vec2>);
+    pub struct Trail(VecDeque<Entity>);
+
+    #[derive(Component, Clone, Debug)]
+
+    pub struct TrailNode;
 
     impl Default for Trail {
         fn default() -> Self {
@@ -259,15 +269,54 @@ mod trail {
         }
     }
 
-    pub fn define_trail(mut trails: Query<(&mut Trail, &Transform)>) {
-        for (mut trail, transform) in trails.iter_mut() {
-            while trail.0.len() >= TRAIL_LENGTH {
-                trail.0.pop_back();
+    pub fn update_trail(
+        mut commands: Commands,
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut materials: ResMut<Assets<ColorMaterial>>,
+        mut trails: Query<(&mut Trail, &Transform), With<crate::Ship>>,
+        mut nodes: Query<
+            (&mut Transform, &mut MeshMaterial2d<ColorMaterial>),
+            Without<crate::Ship>,
+        >,
+    ) {
+        let mesh = meshes.add(Circle::new(2.0));
+        let default_material = materials.add(Color::WHITE);
+
+        for (mut trail, ship_transform) in trails.iter_mut() {
+            while trail.0.len() < TRAIL_LENGTH {
+                let id = commands
+                    .spawn((
+                        Transform::default()
+                            .with_translation(ship_transform.translation)
+                            .with_z_layer(ship_transform.z_layer - 1.0),
+                        Mesh2d(mesh.clone()),
+                        MeshMaterial2d(default_material.clone()),
+                    ))
+                    .id();
+                trail.0.push_back(id);
             }
-            trail.0.push_front(transform.translation);
+
+            let Some(node) = trail.0.pop_back() else {
+                continue;
+            };
+            trail.0.push_front(node);
+
+            let Ok((mut transform, _)) = nodes.get_mut(node) else {
+                continue;
+            };
+            transform.translation = ship_transform.translation;
+
+            let mut iter = nodes.iter_many_mut(&trail.0);
+            let mut i = 0;
+            while let Some((_, mut material)) = iter.fetch_next() {
+                const COLOR: Color = Color::oklch(1.0, 0.8, 0.0);
+                material.0 = materials.add(COLOR.with_alpha(1.0 - i as f32 / TRAIL_LENGTH as f32));
+                i += 1;
+            }
         }
     }
 
+    /*
     pub fn draw_trail(trails: Query<&Trail>, mut gizmos: Gizmos) {
         for trail in trails {
             for (i, node) in trail.0.iter().enumerate() {
@@ -279,4 +328,5 @@ mod trail {
             }
         }
     }
+    */
 }
