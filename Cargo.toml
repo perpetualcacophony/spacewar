@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 bevy = { version = "0.16.1" }
 bevy_dylib = "0.16.1"
+bevy_rapier2d = "0.30.0"
