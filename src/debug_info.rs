@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 
 use crate::KeyBinds;
 
@@ -256,11 +257,11 @@ fn post_spawn(
 fn update2(
     lines: Query<(&mut Line2, &Children)>,
     mut spans: Query<&mut TextSpan>,
-    ship: Single<(&crate::Ship, &crate::Transform)>,
+    ship: Single<(&crate::BevyTransform, &Velocity)>,
     camera: Single<&Projection, With<Camera2d>>,
     diagnostics: Res<bevy::diagnostic::DiagnosticsStore>,
 ) {
-    let (ship, ship_transform) = ship.into_inner();
+    let (ship_transform, velocity) = ship.into_inner();
     let projection = match **camera {
         Projection::Orthographic(ref projection) => projection,
         _ => unimplemented!(),
@@ -277,19 +278,18 @@ fn update2(
         match *line {
             Line2::Heading(ref mut heading) => {
                 *heading = 360.0 - {
-                    let rot = ship_transform
-                        .rotation
-                        .angle_to(Rot2::IDENTITY)
-                        .to_degrees();
+                    let rot = ship_transform.rotation.to_axis_angle().1.to_degrees();
                     if rot.is_sign_positive() {
-                        rot
+                        360.0 - rot
                     } else {
-                        rot + 360.0
+                        rot
                     }
                 }
             }
-            Line2::AngVel(ref mut angular_velocity) => *angular_velocity = ship.rotational_velocity,
-            Line2::Speed(ref mut speed) => *speed = ship.velocity.length(),
+            Line2::AngVel(ref mut angular_velocity) => {
+                *angular_velocity = velocity.angvel.to_degrees()
+            }
+            Line2::Speed(ref mut speed) => *speed = velocity.linvel.length(),
             Line2::Zoom(ref mut zoom) => *zoom = 1.0 / projection.scale,
             Line2::Fps(ref mut fps) => {
                 *fps = diagnostics

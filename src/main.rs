@@ -5,6 +5,7 @@ use bevy_dylib;
 use std::ops::DerefMut;
 
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 use spacewar::*;
 
 mod star;
@@ -17,6 +18,7 @@ mod missile;
 use missile::Missile;
 
 type Transform = Transform2d;
+type BevyTransform = bevy::prelude::Transform;
 
 mod debug_info;
 
@@ -27,6 +29,8 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
+        .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins(transform2d::Plugin)
         .add_plugins(star::Plugin)
         .add_plugins(ship::Plugin)
@@ -51,7 +55,7 @@ fn startup(mut commands: Commands) {
     commands.spawn(Camera2d);
 
     commands.spawn(star::Bundle {
-        star: Star { mass: 1.6e16 },
+        star: Star { mass: 1e17 },
         transform: Transform::default(),
     });
 
@@ -72,6 +76,7 @@ fn respawn_ship(mut commands: Commands, ship: Option<Single<Entity, With<Ship>>>
             sas: None,
             ..Default::default()
         },
+        ..Default::default()
     });
 }
 

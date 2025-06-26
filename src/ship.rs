@@ -1,11 +1,14 @@
-use crate::{GravityField, KeyBinds, KeyPair, Transform};
+use crate::{BevyTransform, GravityField, KeyBinds, KeyPair, Transform};
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 use spacewar::TrajectoryNode;
+
+#[derive(Default, Component, Clone, Debug)]
+pub struct AffectedByGravity;
 
 #[derive(Component, Clone, Debug)]
 pub struct Ship {
     pub velocity: Vec2,
-    pub rotational_velocity: f32,
     pub sas: Option<SASMode>,
     pub draw_trajectory: usize,
     pub trajectory_gap: usize,
@@ -14,8 +17,7 @@ pub struct Ship {
 impl Default for Ship {
     fn default() -> Self {
         Self {
-            velocity: Vec2::X * 300.0,
-            rotational_velocity: 0.0,
+            velocity: Vec2::X * 10.0,
             sas: Some(SASMode::default()),
             draw_trajectory: 500,
             trajectory_gap: 10,
@@ -35,6 +37,32 @@ pub enum SASMode {
 pub struct Bundle {
     pub ship: Ship,
     pub transform: Transform,
+    pub physics: ShipPhysicsBundle,
+}
+
+#[derive(Clone, Debug, Bundle)]
+pub struct ShipPhysicsBundle {
+    pub gravity: GravityScale,
+    pub rigid_body: RigidBody,
+    pub collider: Collider,
+    pub velocity: Velocity,
+    pub force: ExternalForce,
+    pub impulse: ExternalImpulse,
+    pub abg: AffectedByGravity,
+}
+
+impl Default for ShipPhysicsBundle {
+    fn default() -> Self {
+        Self {
+            gravity: GravityScale(0.0),
+            rigid_body: RigidBody::Dynamic,
+            velocity: Velocity::linear(Vec2::X * 100.0),
+            collider: Collider::ball(0.25),
+            force: ExternalForce::default(),
+            impulse: ExternalImpulse::default(),
+            abg: AffectedByGravity,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Resource, Bundle)]
@@ -58,11 +86,11 @@ impl FromWorld for Sprite {
 
 fn spawn_ships(
     mut commands: Commands,
-    stars: Query<Entity, Added<Ship>>,
+    ships: Query<Entity, Added<Ship>>,
     mut components: Query<&mut Transform>,
     sprite: Res<Sprite>,
 ) {
-    for entity in stars.iter() {
+    for entity in ships.iter() {
         let mut transform = components.get_mut(entity).unwrap();
 
         transform.scale = Vec2::splat(30.0);
@@ -75,14 +103,62 @@ fn spawn_ships(
 }
 
 fn change_speed(
-    ship: Single<(&mut Ship, &Transform)>,
+    mut events: EventWriter<TrajectoryDrawer>,
+    ship: Single<(&BevyTransform, &mut ExternalImpulse), With<Ship>>,
     keys: Res<ButtonInput<KeyCode>>,
     keybinds: Res<KeyBinds>,
 ) {
-    let (mut ship, transform) = ship.into_inner();
+    let (transform, mut impulse) = ship.into_inner();
 
     if keys.any_pressed(keybinds.accelerate()) {
-        ship.velocity += 0.5 * transform.local_x();
+        impulse.impulse += transform.right().xy() * 100.0;
+        events.write_default();
+    }
+}
+
+#[derive(Default, Component, Event)]
+struct TrajectoryDrawer {
+    positions: Vec<Vec2>,
+}
+
+fn spawn_trajectory_drawer(
+    mut events: EventReader<TrajectoryDrawer>,
+    mut commands: Commands,
+    query: Query<Entity, With<TrajectoryDrawer>>,
+    ship: Single<(&BevyTransform, &Velocity, &ExternalForce, &ExternalImpulse), With<Ship>>,
+) {
+    if events.read().next().is_some() {
+        let (transform, velocity, force, impulse) = ship.into_inner();
+
+        for entity in query.iter() {
+            commands.entity(entity).despawn();
+        }
+        commands.spawn((
+            TrajectoryDrawer::default(),
+            BevyTransform::from_translation(
+                transform.translation.with_z(transform.translation.z - 1.0),
+            )
+            .with_scale(transform.scale),
+            ShipPhysicsBundle {
+                velocity: Velocity::linear(velocity.linvel),
+                force: *force,
+                impulse: *impulse,
+                ..Default::default()
+            },
+        ));
+    }
+}
+
+fn draw_trajectory2(
+    drawer: Single<(&mut TrajectoryDrawer, &BevyTransform), With<TrajectoryDrawer>>,
+    mut gizmos: Gizmos,
+) {
+    let (mut drawer, transform) = drawer.into_inner();
+
+    drawer.positions.push(transform.translation.xy());
+
+    for position in &drawer.positions {
+        gizmos.circle_2d(*position, 1.0, Color::oklch(1.0, 0.8, 240.0));
     }
 }
 
@@ -105,19 +181,21 @@ fn change_target(mut ship: Single<&mut Ship>, keys: Res<ButtonInput<KeyCode>>) {
 }
 
 fn change_angle(
-    ship: Single<(&mut Ship, &Transform), With<Ship>>,
+    ship: Single<&mut ExternalImpulse, With<Ship>>,
     keys: Res<ButtonInput<KeyCode>>,
     keybinds: Res<KeyBinds>,
 ) {
-    let (mut ship, transform) = ship.into_inner();
+    let mut impulse = ship.into_inner();
 
-    if keys.any_pressed(keybinds.rotation_speed().map(KeyPair::left)) {
-        ship.rotational_velocity += 1.0;
+    impulse.torque_impulse += if keys.any_pressed(keybinds.rotation_speed().map(KeyPair::left)) {
+        1.0
     } else if keys.any_pressed(keybinds.rotation_speed().map(KeyPair::right)) {
-        ship.rotational_velocity -= 1.0;
-    }
+        -1.0
+    } else {
+        0.0
+    } * 900.0;
 
-    if let Some(sas) = ship.sas {
+    /*     if let Some(sas) = ship.sas {
         match sas {
             SASMode::Stability => ship.rotational_velocity -= 0.03 * ship.rotational_velocity,
             SASMode::Prograde | SASMode::Retrograde => {
@@ -131,10 +209,10 @@ fn change_angle(
                 ship.rotational_velocity += 0.16 * delta;
             }
         }
-    }
+    } */
 }
 
-fn update_ship(
+/* fn update_ship(
     ship: Single<(&mut Ship, &mut Transform), With<Ship>>,
     gravity: Res<GravityField>,
     time: Res<Time>,
@@ -161,14 +239,32 @@ fn update_ship(
         "v2 / r = {}",
         ship.velocity.length_squared() / ship_transform.translation.length()
     ); */
-}
+} */
 
 fn draw_trajectory(
-    ships: Query<(&Ship, &Transform)>,
+    ship: Single<(&BevyTransform, &Velocity), With<Ship>>,
+    //ships: Query<(&Ship, &Transform)>,
     gravity: Res<GravityField>,
     mut gizmos: Gizmos,
     time: Res<Time<Fixed>>,
 ) {
+    let (transform, velocity) = ship.into_inner();
+
+    let mut position = transform.translation.xy();
+
+    for i in 0..1000 {
+        let fraction = i as f32 / 1000.0;
+        position += gravity.acceleration_at(position) * fraction;
+        position += velocity.linvel * fraction;
+
+        gizmos.circle_2d(
+            position,
+            1.0,
+            Color::oklch(1.0, 0.8, 240.0).with_alpha(1.0 - i as f32 / 1000.0),
+        );
+    }
+
+    /*
     for (ship, transform) in ships.iter() {
         let trajectory = gravity.trajectory_starting_at(
             TrajectoryNode::from_translation_velocity(transform.translation, ship.velocity),
@@ -188,6 +284,7 @@ fn draw_trajectory(
             );
         }
     }
+    */
 }
 
 fn fire_missile(mut commands: Commands, ship: Single<(&Ship, &Transform)>) {
@@ -200,12 +297,28 @@ fn fire_missile(mut commands: Commands, ship: Single<(&Ship, &Transform)>) {
     });
 }
 
+fn add_gravity(
+    mut query: Query<(&BevyTransform, &mut ExternalForce), With<AffectedByGravity>>,
+    gravity: Res<GravityField>,
+) {
+    for (transform, mut force) in query.iter_mut() {
+        force.force = gravity.acceleration_at(transform.translation.xy()) * 500000.;
+    }
+}
+
 pub struct Plugin;
 
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Sprite>()
-            .add_systems(PostStartup, spawn_ships)
+            .add_event::<TrajectoryDrawer>()
+            .add_systems(
+                PostStartup,
+                (spawn_ships, |mut events: EventWriter<TrajectoryDrawer>| {
+                    events.write_default();
+                })
+                    .chain(),
+            )
             .add_systems(
                 Update,
                 (
@@ -216,10 +329,14 @@ impl bevy::prelude::Plugin for Plugin {
                     fire_missile.run_if(bevy::input::common_conditions::input_just_pressed(
                         KeyCode::Space,
                     )),
+                    spawn_trajectory_drawer,
                 ),
             )
-            .add_systems(FixedUpdate, (update_ship, trail::update_trail))
-            .add_systems(PostUpdate, (draw_trajectory, spawn_ships));
+            .add_systems(
+                FixedUpdate,
+                (/* update_ship */ add_gravity, trail::update_trail),
+            )
+            .add_systems(PostUpdate, (draw_trajectory2, spawn_ships));
     }
 }
 
@@ -252,7 +369,7 @@ pub fn trajectory_drawing_keybinds(
 mod trail {
     const TRAIL_LENGTH: usize = 20;
 
-    use super::Transform;
+    use super::BevyTransform as Transform;
     use bevy::prelude::*;
     use std::collections::VecDeque;
 
@@ -286,9 +403,11 @@ mod trail {
             while trail.0.len() < TRAIL_LENGTH {
                 let id = commands
                     .spawn((
-                        Transform::default()
-                            .with_translation(ship_transform.translation)
-                            .with_z_layer(ship_transform.z_layer - 1.0),
+                        Transform::default().with_translation(
+                            ship_transform
+                                .translation
+                                .with_z(ship_transform.translation.z - 1.0),
+                        ),
                         Mesh2d(mesh.clone()),
                         MeshMaterial2d(default_material.clone()),
                     ))
