@@ -1,7 +1,31 @@
-use crate::{BevyTransform, GravityField, KeyBinds, KeyPair, Transform};
+use crate::{BevyTransform, GravityField, KeyBinds, KeyPair, OrbitalElements, Transform};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use spacewar::TrajectoryNode;
+
+pub fn calculate_orbital_elements(
+    mut objects: Query<(&mut OrbitalElements, &Velocity, &BevyTransform)>,
+    gravity: Res<GravityField>,
+) {
+    for (mut elements, velocity, transform) in objects.iter_mut() {
+        elements.eccentricity = {
+            let standard_gravitational_parameter: f64 =
+                crate::gravity::GRAVITATIONAL_CONSTANT as f64 * crate::CENTRAL_STAR_MASS as f64;
+
+            let specific_orbital_energy = velocity.linvel.length_squared() as f64 / 2.0
+                - standard_gravitational_parameter / transform.translation.xy().length() as f64;
+
+            dbg!(specific_orbital_energy);
+
+            let specific_relative_angular_momentum: f64 = 1.0;
+
+            f64::sqrt(
+                1.0 + (2.0 * specific_orbital_energy * specific_relative_angular_momentum.powi(2)
+                    / standard_gravitational_parameter.powi(2)),
+            ) as f32
+        };
+    }
+}
 
 #[derive(Default, Component, Clone, Debug)]
 pub struct AffectedByGravity;
@@ -38,6 +62,7 @@ pub struct Bundle {
     pub ship: Ship,
     pub transform: Transform,
     pub physics: ShipPhysicsBundle,
+    pub orbit: OrbitalElements,
 }
 
 #[derive(Clone, Debug, Bundle)]
@@ -193,7 +218,7 @@ fn change_angle(
         -1.0
     } else {
         0.0
-    } * 900.0;
+    } * 500.0;
 
     /*     if let Some(sas) = ship.sas {
         match sas {
@@ -302,7 +327,7 @@ fn add_gravity(
     gravity: Res<GravityField>,
 ) {
     for (transform, mut force) in query.iter_mut() {
-        force.force = gravity.acceleration_at(transform.translation.xy()) * 500000.;
+        force.force = gravity.acceleration_at(transform.translation.xy());
     }
 }
 
@@ -336,7 +361,10 @@ impl bevy::prelude::Plugin for Plugin {
                 FixedUpdate,
                 (/* update_ship */ add_gravity, trail::update_trail),
             )
-            .add_systems(PostUpdate, (draw_trajectory2, spawn_ships));
+            .add_systems(
+                PostUpdate,
+                (draw_trajectory2, spawn_ships, calculate_orbital_elements),
+            );
     }
 }
 

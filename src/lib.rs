@@ -82,3 +82,16 @@ pub use gravity::{GravityField, Mass};
 pub fn smoothstep(x: f32) -> f32 {
     3.0 * x.powi(2) - 2.0 * x.powi(3)
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, bevy::prelude::Component, Default)]
+pub struct OrbitalElements {
+    pub periapsis: f32,
+    pub eccentricity: f32,
+}
+
+impl OrbitalElements {
+    pub const ZERO: Self = Self {
+        periapsis: 0.0,
+        eccentricity: 0.0,
+    };
+}

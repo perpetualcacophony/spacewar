@@ -9,7 +9,7 @@ pub struct Mass {
 
 impl Mass {
     fn acceleration_to(&self, from_point: Vec2) -> Vec2 {
-        let displacement = (from_point - self.translation) * 100.0; // m
+        let displacement = from_point - self.translation; // m
         -GRAVITATIONAL_CONSTANT * self.mass / displacement.length_squared()
             * displacement.normalize_or_zero()
     }

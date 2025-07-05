@@ -25,11 +25,13 @@ mod debug_info;
 mod keybinds;
 pub use keybinds::{KeyBinds, KeyPair};
 
+pub const CENTRAL_STAR_MASS: f32 = 1e19;
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
-        .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.0))
         .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins(transform2d::Plugin)
         .add_plugins(star::Plugin)
@@ -55,7 +57,9 @@ fn startup(mut commands: Commands) {
     commands.spawn(Camera2d);
 
     commands.spawn(star::Bundle {
-        star: Star { mass: 1e17 },
+        star: Star {
+            mass: CENTRAL_STAR_MASS,
+        },
         transform: Transform::default(),
     });
 
