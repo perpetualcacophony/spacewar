@@ -15,6 +15,10 @@ pub fn calculate_orbital_elements(
             let specific_orbital_energy = velocity.linvel.length_squared() as f64 / 2.0
                 - standard_gravitational_parameter / transform.translation.xy().length() as f64;
 
+            // dbg!(specific_orbital_energy);
+
+            dbg!(velocity.linvel.length());
+            dbg!(transform.translation.xy().length());
             dbg!(specific_orbital_energy);
 
             let specific_relative_angular_momentum: f64 = 1.0;
@@ -60,7 +64,7 @@ pub enum SASMode {
 #[derive(Clone, Debug, Bundle, Default)]
 pub struct Bundle {
     pub ship: Ship,
-    pub transform: Transform,
+    pub transform: BevyTransform,
     pub physics: ShipPhysicsBundle,
     pub orbit: OrbitalElements,
 }
@@ -81,7 +85,7 @@ impl Default for ShipPhysicsBundle {
         Self {
             gravity: GravityScale(0.0),
             rigid_body: RigidBody::Dynamic,
-            velocity: Velocity::linear(Vec2::X * 100.0),
+            velocity: Velocity::linear(Vec2::X * 1092.6734),
             collider: Collider::ball(0.25),
             force: ExternalForce::default(),
             impulse: ExternalImpulse::default(),
@@ -112,13 +116,13 @@ impl FromWorld for Sprite {
 fn spawn_ships(
     mut commands: Commands,
     ships: Query<Entity, Added<Ship>>,
-    mut components: Query<&mut Transform>,
+    mut components: Query<&mut BevyTransform>,
     sprite: Res<Sprite>,
 ) {
     for entity in ships.iter() {
         let mut transform = components.get_mut(entity).unwrap();
 
-        transform.scale = Vec2::splat(30.0);
+        transform.scale = Vec2::splat(30.0).extend(1.0);
 
         commands
             .entity(entity)
@@ -326,8 +330,11 @@ fn add_gravity(
     mut query: Query<(&BevyTransform, &mut ExternalForce), With<AffectedByGravity>>,
     gravity: Res<GravityField>,
 ) {
-    for (transform, mut force) in query.iter_mut() {
-        force.force = gravity.acceleration_at(transform.translation.xy());
+    for (transform, mut velocity) in query.iter_mut() {
+        dbg!(gravity.acceleration_at(transform.translation.xy()));
+        dbg!(transform.translation.xy());
+
+        velocity.force = gravity.acceleration_at(transform.translation.xy());
     }
 }
 

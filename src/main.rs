@@ -75,7 +75,7 @@ fn respawn_ship(mut commands: Commands, ship: Option<Single<Entity, With<Ship>>>
     }
 
     commands.spawn(ship::Bundle {
-        transform: Transform::default().with_translation(Vec2::new(-1000.0, 500.0)),
+        transform: BevyTransform::default().with_translation(Vec2::new(-1000.0, 500.0).extend(0.0)),
         ship: Ship {
             sas: None,
             ..Default::default()
