@@ -10,7 +10,8 @@ pub struct Trajectory<'g> {
 
 impl Trajectory<'_> {
     pub fn next_guaranteed(&mut self) -> TrajectoryNode {
-        self.state.velocity += self.mass * self.gravity.acceleration_at(self.state.translation());
+        self.state.velocity +=
+            self.mass * self.gravity.acceleration_at(self.state.translation()) * self.timestep;
 
         self.state.translation += self.state.velocity() * self.timestep;
         self.state
@@ -57,6 +58,15 @@ impl Iterator for Trajectory<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         Some(self.next_guaranteed())
+    }
+}
+
+impl DoubleEndedIterator for Trajectory<'_> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.state.translation -= self.state.velocity() * self.timestep;
+        self.state.velocity -=
+            self.mass * self.gravity.acceleration_at(self.state.translation()) * self.timestep;
+        Some(self.state)
     }
 }
 
