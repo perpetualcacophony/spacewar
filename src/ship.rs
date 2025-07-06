@@ -14,7 +14,7 @@ pub struct Ship {
 impl Default for Ship {
     fn default() -> Self {
         Self {
-            velocity: Vec2::X * 300.0,
+            velocity: Vec2::X * 50.0,
             rotational_velocity: 0.0,
             sas: Some(SASMode::default()),
             draw_trajectory: 500,
@@ -147,6 +147,8 @@ fn update_ship(
         TrajectoryNode::from_translation_velocity(ship_transform.translation, ship.velocity),
         time.delta_secs(),
     );
+
+    trajectory.eccentricity();
 
     let next_node = trajectory.next().unwrap();
 

@@ -82,3 +82,43 @@ pub use gravity::{GravityField, Mass};
 pub fn smoothstep(x: f32) -> f32 {
     3.0 * x.powi(2) - 2.0 * x.powi(3)
 }
+
+pub fn rk4(y: impl Fn(f32) -> f32, t0: f32, h: f32) -> f32 {
+    fn f(t: f32, y: impl Fn(f32) -> f32) -> f32 {
+        const DIFFERENTIATION_STEP: f32 = 1e-10;
+        let mut delta = DIFFERENTIATION_STEP;
+
+        while t + delta <= t {
+            delta *= 2.0;
+        }
+
+        let t1 = t + delta;
+
+        let y0 = y(t);
+        let y1 = y(t1);
+
+        (y1 - y0) / (t1 - t)
+    }
+
+    let k1 = f(t0, &y);
+    let k2 = f(t0 + h / 2.0, |t: f32| y(t) + h * k1 / 2.0);
+    let k3 = f(t0 + h / 2.0, |t: f32| y(t) + h * k2 / 2.0);
+    let k4 = f(t0 + h, |t: f32| y(t) + h * k3);
+
+    y(t0) + (h / 6.0) * (k1 + 2.0 * k2 + 2.0 + k3 + k4)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn rk4() {
+        use super::rk4;
+
+        let predicted = rk4(|x| x.powi(2), 10.0, 1.0);
+        let actual = 121.0; // 11^2
+
+        let error = (predicted - actual).abs() / actual;
+
+        assert!(error < 0.01);
+    }
+}

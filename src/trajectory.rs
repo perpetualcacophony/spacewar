@@ -17,7 +17,8 @@ impl Trajectory<'_> {
     }
 
     pub fn eccentricity(&self) -> f32 {
-        let standard_gravitational_parameter = crate::gravity::GRAVITATIONAL_CONSTANT * 1.6e16;
+        let standard_gravitational_parameter =
+            crate::gravity::GRAVITATIONAL_CONSTANT * self.gravity.masses[0].mass;
 
         let _angular_momentum = {
             let r = self.state.translation();
@@ -33,13 +34,10 @@ impl Trajectory<'_> {
             let r = self.state.translation().length();
             let mu = standard_gravitational_parameter;
 
-            dbg!(v.powi(2) / 2.0);
-            dbg!(-mu / r);
-
             v.powi(2) / 2.0 - mu / r
         };
 
-        //dbg!(specific_orbital_energy);
+        dbg!(specific_orbital_energy);
 
         let specific_relative_angular_momentum = self
             .state
