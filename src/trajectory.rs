@@ -1,6 +1,7 @@
 use crate::GravityField;
 use bevy::math::Vec2;
 
+#[derive(Clone, Copy, Debug)]
 pub struct Trajectory<'g> {
     pub gravity: &'g GravityField,
     pub state: TrajectoryNode,
@@ -17,6 +18,34 @@ impl Trajectory<'_> {
         self.state
     }
 
+    pub fn periapsis_distance(&self) -> f32 {
+        let mut current_r = self.state.translation().length_squared();
+
+        let mut tester = *self;
+        if tester.next_guaranteed().translation().length_squared()
+            < self.state.translation().length_squared()
+        {
+            for r_squared in tester.map(|node| node.translation().length_squared()) {
+                if r_squared < current_r {
+                    current_r = r_squared;
+                } else if r_squared > current_r {
+                    return current_r.sqrt();
+                }
+            }
+        } else {
+            for r_squared in tester.rev().map(|node| node.translation().length_squared()) {
+                if r_squared < current_r {
+                    current_r = r_squared;
+                } else if r_squared > current_r {
+                    return current_r.sqrt();
+                }
+            }
+        }
+
+        unreachable!()
+    }
+
+    /*
     pub fn eccentricity(&self) -> f32 {
         let standard_gravitational_parameter =
             crate::gravity::GRAVITATIONAL_CONSTANT * self.gravity.masses[0].mass;
@@ -51,6 +80,7 @@ impl Trajectory<'_> {
             / standard_gravitational_parameter.powi(2)))
         .sqrt()
     }
+    */
 }
 
 impl Iterator for Trajectory<'_> {

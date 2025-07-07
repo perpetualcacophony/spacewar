@@ -148,7 +148,8 @@ fn update_ship(
         time.delta_secs(),
     );
 
-    trajectory.eccentricity();
+    dbg!(trajectory.periapsis_distance());
+    //trajectory.eccentricity();
 
     let next_node = trajectory.next().unwrap();
 
